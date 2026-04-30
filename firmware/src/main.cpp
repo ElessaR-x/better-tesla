@@ -5,12 +5,17 @@
 
 MCP2515 mcp2515(CAN_CS_PIN);
 
+#if ENABLE_SECOND_MCP2515
+MCP2515 mcp2515_2(CAN2_CS_PIN);
+#endif
+
 struct FrameEntry {
     uint32_t id;
     uint8_t  dlc;
     uint8_t  data[8];
     uint32_t ts_ms;
     bool     ext;
+    uint8_t  bus;
 };
 
 FrameEntry frameBuf[FRAME_BUF_SIZE];
@@ -116,7 +121,7 @@ void checkGearFrame(const can_frame& f) {
     }
 }
 
-void pushFrame(const can_frame& f) {
+void pushFrame(const can_frame& f, uint8_t bus = 0) {
     if (bufCount >= FRAME_BUF_SIZE) {
         bufTail = (bufTail + 1) % FRAME_BUF_SIZE;
         bufCount--;
@@ -126,6 +131,7 @@ void pushFrame(const can_frame& f) {
     e.dlc   = f.can_dlc;
     e.ext   = (f.can_id & CAN_EFF_FLAG) != 0;
     e.ts_ms = millis();
+    e.bus   = bus;
     memcpy(e.data, f.data, f.can_dlc);
     bufHead = (bufHead + 1) % FRAME_BUF_SIZE;
     bufCount++;
@@ -149,6 +155,8 @@ void printFrameJSON(const FrameEntry& e) {
     Serial.print(e.ext ? F("true") : F("false"));
     Serial.print(F(",\"dlc\":"));
     Serial.print(e.dlc);
+    Serial.print(F(",\"bus\":"));
+    Serial.print(e.bus);
     Serial.print(F(",\"data\":\""));
     for (uint8_t i = 0; i < e.dlc; i++) {
         char h[3];
@@ -171,6 +179,8 @@ void printFrameCSV(const FrameEntry& e) {
     }
     Serial.print(',');
     Serial.print(e.dlc);
+    Serial.print(',');
+    Serial.print(e.bus);
     Serial.print(',');
     for (uint8_t i = 0; i < e.dlc; i++) {
         char h[3];
@@ -269,6 +279,11 @@ void handleCommand(const String& cmd) {
             mcp2515.reset();
             mcp2515.setBitrate(newSpeed, CAN_CRYSTAL);
             mcp2515.setNormalMode();
+#if ENABLE_SECOND_MCP2515
+            mcp2515_2.reset();
+            mcp2515_2.setBitrate(newSpeed, CAN_CRYSTAL);
+            mcp2515_2.setNormalMode();
+#endif
             Serial.print(F("{\"cmd\":\"speed\",\"kbps\":"));
             Serial.print(kbps);
             Serial.println(F(",\"ok\":true}"));
@@ -281,6 +296,12 @@ void handleCommand(const String& cmd) {
         mcp2515.setFilterMask(MCP2515::MASK0, false, 0x7FF);
         mcp2515.setFilter(MCP2515::RXF0, false, filterId);
         mcp2515.setNormalMode();
+#if ENABLE_SECOND_MCP2515
+        mcp2515_2.setConfigMode();
+        mcp2515_2.setFilterMask(MCP2515::MASK0, false, 0x7FF);
+        mcp2515_2.setFilter(MCP2515::RXF0, false, filterId);
+        mcp2515_2.setNormalMode();
+#endif
         Serial.print(F("{\"cmd\":\"filter\",\"id\":\"0x"));
         Serial.print(filterId, HEX);
         Serial.println(F("\",\"ok\":true}"));
@@ -289,6 +310,12 @@ void handleCommand(const String& cmd) {
         mcp2515.setFilterMask(MCP2515::MASK0, false, 0);
         mcp2515.setFilterMask(MCP2515::MASK1, false, 0);
         mcp2515.setNormalMode();
+#if ENABLE_SECOND_MCP2515
+        mcp2515_2.setConfigMode();
+        mcp2515_2.setFilterMask(MCP2515::MASK0, false, 0);
+        mcp2515_2.setFilterMask(MCP2515::MASK1, false, 0);
+        mcp2515_2.setNormalMode();
+#endif
         Serial.println(F("{\"cmd\":\"nofilter\",\"ok\":true}"));
     } else {
         Serial.println(F("{\"cmd\":\"unknown\",\"ok\":false}"));
@@ -309,7 +336,21 @@ void setup() {
         while (1) { delay(1000); }
     }
     mcp2515.setNormalMode();
-    Serial.println(F("{\"mcp2515\":\"ready\",\"speed\":\"500kbps\",\"crystal\":\"8MHz\"}"));
+
+#if ENABLE_SECOND_MCP2515
+    mcp2515_2.reset();
+    MCP2515::ERROR err2 = mcp2515_2.setBitrate(CAN_DEFAULT_SPEED, CAN_CRYSTAL);
+    if (err2 != MCP2515::ERROR_OK) {
+        Serial.print(F("{\"fatal\":\"mcp2515_2_bitrate\",\"code\":"));
+        Serial.print((int)err2);
+        Serial.println(F("}"));
+        while (1) { delay(1000); }
+    }
+    mcp2515_2.setNormalMode();
+    Serial.println(F("{\"mcp2515\":\"ready\",\"speed\":\"500kbps\",\"crystal\":\"8MHz\",\"dual\":true}"));
+#else
+    Serial.println(F("{\"mcp2515\":\"ready\",\"speed\":\"500kbps\",\"crystal\":\"8MHz\",\"dual\":false}"));
+#endif
 }
 
 void loop() {
@@ -318,11 +359,24 @@ void loop() {
         MCP2515::ERROR err = mcp2515.readMessage(&frame);
         if (err == MCP2515::ERROR_OK) {
             checkGearFrame(frame);
-            pushFrame(frame);
+            pushFrame(frame, 0);
         } else {
             errorCount++;
         }
     }
+
+#if ENABLE_SECOND_MCP2515
+    if (mcp2515_2.checkReceive()) {
+        can_frame frame;
+        MCP2515::ERROR err = mcp2515_2.readMessage(&frame);
+        if (err == MCP2515::ERROR_OK) {
+            checkGearFrame(frame);
+            pushFrame(frame, 1);
+        } else {
+            errorCount++;
+        }
+    }
+#endif
 
     // Inject mute frame every 100ms while in reverse and mute enabled
     if (muteModeEnabled && inReverse) {

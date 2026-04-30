@@ -10,12 +10,14 @@ Yapay zeka asistanları (Claude, Cursor, vb.) ile tam entegre çalışacak şeki
 
 * **NodeMCU ESP8266 (v2)**
 * **MCP2515 CAN Controller Modülü** (ÖNEMLİ: Mutlaka **8MHz** kristalli model kullanılmalıdır)
+  * *(Opsiyonel)* Aynı anda ikinci bir CAN hattını dinlemek isterseniz, ikinci bir MCP2515 modülü ekleyebilirsiniz.
 * **Bağlantı Şeması (SPI):**
-  * `CS` ➔ `D8 (GPIO15)`
-  * `INT` ➔ `D2 (GPIO4)`
-  * `SCK` ➔ `D5 (GPIO14)`
-  * `MOSI` ➔ `D7 (GPIO13)`
-  * `MISO` ➔ `D6 (GPIO12)`
+  * `CS` ➔ `D8 (GPIO15)` *(Ana MCP)*
+  * `CS` ➔ `D3 (GPIO0)` *(İkinci MCP - Opsiyonel)*
+  * `INT` ➔ `D2 (GPIO4)` *(İkinci MCP'de kullanılmıyor)*
+  * `SCK` ➔ `D5 (GPIO14)` *(İki modül için paylaşımlı)*
+  * `MOSI` ➔ `D7 (GPIO13)` *(İki modül için paylaşımlı)*
+  * `MISO` ➔ `D6 (GPIO12)` *(İki modül için paylaşımlı)*
 * Tesla CAN Bus adaptör kablosu (Aracınızın modeline ve üretim yılına göre OBD2 veya özel soket)
 
 ---
@@ -36,8 +38,9 @@ Proje 4 ana bileşenden oluşur:
 ### 1. Firmware Yüklemesi (ESP8266)
 Yazılımı derlemek ve yüklemek için [PlatformIO](https://platformio.org/) kullanıyoruz.
 1. `firmware/` klasörünü VS Code veya PlatformIO IDE ile açın.
-2. ESP8266'nızı USB ile bilgisayara bağlayın.
-3. PlatformIO üzerinden `Upload` diyerek kodu yükleyin.
+2. *(Opsiyonel)* İkinci bir MCP2515 bağladıysanız, `firmware/include/config.h` dosyasındaki `ENABLE_SECOND_MCP2515` ayarını `true` yapın.
+3. ESP8266'nızı USB ile bilgisayara bağlayın.
+4. PlatformIO üzerinden `Upload` diyerek kodu yükleyin.
 
 ### 2. Python Bridge Çalıştırma
 Verileri kaydetmek ve ESP8266'ya komut göndermek için köprü scriptini çalıştırmalısınız.

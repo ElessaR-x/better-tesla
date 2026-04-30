@@ -54,7 +54,8 @@ def init_db(path: Path) -> sqlite3.Connection:
             can_id   TEXT    NOT NULL,
             is_ext   INTEGER NOT NULL DEFAULT 0,
             dlc      INTEGER NOT NULL,
-            data     TEXT    NOT NULL
+            data     TEXT    NOT NULL,
+            bus      INTEGER NOT NULL DEFAULT 0
         );
         CREATE INDEX IF NOT EXISTS idx_frames_can_id  ON frames(can_id);
         CREATE INDEX IF NOT EXISTS idx_frames_ts_host ON frames(ts_host);
@@ -99,8 +100,8 @@ def db_cursor(conn: sqlite3.Connection):
 def insert_frame(conn: sqlite3.Connection, frame: dict) -> None:
     with db_cursor(conn) as cur:
         cur.execute(
-            "INSERT INTO frames (ts_dev, ts_host, can_id, is_ext, dlc, data) "
-            "VALUES (?, ?, ?, ?, ?, ?)",
+            "INSERT INTO frames (ts_dev, ts_host, can_id, is_ext, dlc, data, bus) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?)",
             (
                 frame["ts"],
                 time.time(),
@@ -108,6 +109,7 @@ def insert_frame(conn: sqlite3.Connection, frame: dict) -> None:
                 1 if frame.get("ext") else 0,
                 frame["dlc"],
                 frame["data"],
+                frame.get("bus", 0),
             ),
         )
 
