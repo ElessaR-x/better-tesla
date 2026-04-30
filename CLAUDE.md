@@ -50,7 +50,10 @@ mcp_server/       MCP server + ChromaDB RAG (TODO)
   server.py
   rag.py
 
-data/             DBC files + decoded JSON (~100MB, not in git)
+data/             Data files for analysis and reference
+  dbc/            DBC definition files (vehicle, party)
+  samples/        Decoded CAN frame samples (JSON/CSV)
+  hacks/          Reverse engineering documentation and methodologies
 ```
 
 ## MCP Server Tools (to implement)

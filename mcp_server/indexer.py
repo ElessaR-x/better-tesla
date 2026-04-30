@@ -19,10 +19,10 @@ CHROMA_DIR = Path(__file__).parent.parent / "chroma_db"
 COLLECTION = "can_signals"
 
 DBC_FILES = [
-    ("vehicle", DATA_DIR / "vehicle.dbc"),
-    ("party",   DATA_DIR / "party.dbc"),
+    ("vehicle", DATA_DIR / "dbc" / "vehicle.dbc"),
+    ("party",   DATA_DIR / "dbc" / "party.dbc"),
 ]
-JSON_FILE = DATA_DIR / "can_frames_decoded_all_values_mcu3.json"
+JSON_FILE = DATA_DIR / "samples" / "can_frames_decoded_all_values_mcu3.json"
 
 
 # ---------------------------------------------------------------------------

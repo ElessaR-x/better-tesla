@@ -7,5 +7,7 @@ venv/
 .env
 data/
 !data/hacks/
+!data/dbc/
+!data/samples/
 chroma_db/
 *.log
