@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "better-tesla": {
+      "command": "/Users/ardaozger/Desktop/Projects/better-tesla/.venv/bin/python",
+      "args": ["/Users/ardaozger/Desktop/Projects/better-tesla/mcp_server/server.py"]
+    }
+  }
+}
